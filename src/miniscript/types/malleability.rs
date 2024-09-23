@@ -146,6 +146,11 @@ impl Malleability {
         Malleability { dissat: Dissat::None, safe: self.safe, non_malleable: self.non_malleable }
     }
 
+    /// Constructor for the malleabilitiy properties of the `v:` fragment.
+    pub const fn cast_drop(self) -> Self {
+        Malleability { dissat: Dissat::None, safe: self.safe, non_malleable: self.non_malleable }
+    }
+
     /// Constructor for the malleabilitiy properties of the `j:` fragment.
     pub const fn cast_nonzero(self) -> Self {
         Malleability {

@@ -15047,6 +15047,7 @@ mod tests {
     #[cfg_attr(feature="cargo-fmt", rustfmt_skip)]
     fn malleable_tests_from_alloy() {
         ms_test("and_v(v:after(500000001),or_d(j:multi(2,A,B,C),multi(2,D,E,F)))", "usB");
+        ms_test("and_v(r:after(500000001),or_d(j:multi(2,A,B,C),multi(2,D,E,F)))", "usB");
         ms_test("or_b(j:multi(2,A,B,C),a:andor(multi(2,D,E,F),multi(2,G,I,J),multi(2,K,L,M)))", "dBesu");
         ms_test("andor(or_i(multi(2,A,B,C),0),sha256(c7bcb868ab4db55ca45f8eefe5b1677d9fc2c4111e295baaee1b34ed352c719b),multi(2,D,E,F))", "dBesu");
         ms_test("or_d(or_i(0,or_i(multi(2,A,B,C),0)),multi(2,D,E,F))", "dBesu");

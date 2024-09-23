@@ -488,6 +488,24 @@ impl ExtData {
         }
     }
 
+    /// Extra properties for the `r:` fragment.
+    pub fn cast_drop(self) -> Self {
+        let verify_cost = usize::from(!self.has_free_verify);
+        ExtData {
+            pk_cost: self.pk_cost + usize::from(!self.has_free_verify),
+            has_free_verify: false,
+            ops: OpLimits::new(verify_cost + self.ops.count, self.ops.sat, None),
+            stack_elem_count_sat: self.stack_elem_count_sat,
+            stack_elem_count_dissat: None,
+            max_sat_size: self.max_sat_size,
+            max_dissat_size: None,
+            timelock_info: self.timelock_info,
+            exec_stack_elem_count_sat: self.exec_stack_elem_count_sat,
+            exec_stack_elem_count_dissat: None,
+            tree_height: self.tree_height + 1,
+        }
+    }
+
     /// Extra properties for the `j:` fragment.
     pub const fn cast_nonzero(self) -> Self {
         ExtData {
@@ -947,6 +965,7 @@ impl ExtData {
             Terminal::Check(ref sub) => Self::cast_check(sub.ext),
             Terminal::DupIf(ref sub) => Self::cast_dupif(sub.ext),
             Terminal::Verify(ref sub) => Self::cast_verify(sub.ext),
+            Terminal::Drop(ref sub) => Self::cast_drop(sub.ext),
             Terminal::NonZero(ref sub) => Self::cast_nonzero(sub.ext),
             Terminal::ZeroNotEqual(ref sub) => Self::cast_zeronotequal(sub.ext),
             Terminal::AndB(ref l, ref r) => {

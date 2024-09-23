@@ -238,6 +238,19 @@ impl Correctness {
         })
     }
 
+    /// Constructor for the correctness properties of the `r:` fragment.
+    pub const fn cast_drop(self) -> Result<Self, ErrorKind> {
+        Ok(Correctness {
+            base: match self.base {
+                Base::B => Base::V,
+                x => return Err(ErrorKind::ChildBase1(x)),
+            },
+            input: self.input,
+            dissatisfiable: false,
+            unit: false,
+        })
+    }
+
     /// Constructor for the correctness properties of the `j:` fragment.
     pub const fn cast_nonzero(self) -> Result<Self, ErrorKind> {
         if !self.input.constfn_eq(Input::OneNonZero) && !self.input.constfn_eq(Input::AnyNonZero) {

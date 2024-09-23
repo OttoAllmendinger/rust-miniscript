@@ -103,6 +103,7 @@ mod private {
                     Terminal::Check(..) => Terminal::Check(stack.pop().unwrap()),
                     Terminal::DupIf(..) => Terminal::DupIf(stack.pop().unwrap()),
                     Terminal::Verify(..) => Terminal::Verify(stack.pop().unwrap()),
+                    Terminal::Drop(..) => Terminal::Drop(stack.pop().unwrap()),
                     Terminal::NonZero(..) => Terminal::NonZero(stack.pop().unwrap()),
                     Terminal::ZeroNotEqual(..) => Terminal::ZeroNotEqual(stack.pop().unwrap()),
                     Terminal::AndV(..) => {
@@ -236,6 +237,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
                 Terminal::After(n) => script_num_size(n.to_consensus_u32() as usize) + 1,
                 Terminal::Older(n) => script_num_size(n.to_consensus_u32() as usize) + 1,
                 Terminal::Verify(ref sub) => usize::from(!sub.ext.has_free_verify),
+                Terminal::Drop(..) => 1,
                 Terminal::Thresh(ref thresh) => {
                     script_num_size(thresh.k()) // k
                         + 1 // EQUAL
@@ -553,6 +555,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
                 Terminal::Check(..) => Terminal::Check(translated.pop().unwrap()),
                 Terminal::DupIf(..) => Terminal::DupIf(translated.pop().unwrap()),
                 Terminal::Verify(..) => Terminal::Verify(translated.pop().unwrap()),
+                Terminal::Drop(..) => Terminal::Drop(translated.pop().unwrap()),
                 Terminal::NonZero(..) => Terminal::NonZero(translated.pop().unwrap()),
                 Terminal::ZeroNotEqual(..) => Terminal::ZeroNotEqual(translated.pop().unwrap()),
                 Terminal::AndV(..) => {
@@ -618,6 +621,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
                 Terminal::Check(..) => Terminal::Check(stack.pop().unwrap()),
                 Terminal::DupIf(..) => Terminal::DupIf(stack.pop().unwrap()),
                 Terminal::Verify(..) => Terminal::Verify(stack.pop().unwrap()),
+                Terminal::Drop(..) => Terminal::Drop(stack.pop().unwrap()),
                 Terminal::NonZero(..) => Terminal::NonZero(stack.pop().unwrap()),
                 Terminal::ZeroNotEqual(..) => Terminal::ZeroNotEqual(stack.pop().unwrap()),
                 Terminal::AndV(..) => Terminal::AndV(stack.pop().unwrap(), stack.pop().unwrap()),
@@ -729,6 +733,7 @@ where
             'c' => unwrapped = Terminal::Check(Arc::new(ms)),
             'd' => unwrapped = Terminal::DupIf(Arc::new(ms)),
             'v' => unwrapped = Terminal::Verify(Arc::new(ms)),
+            'r' => unwrapped = Terminal::Drop(Arc::new(ms)),
             'j' => unwrapped = Terminal::NonZero(Arc::new(ms)),
             'n' => unwrapped = Terminal::ZeroNotEqual(Arc::new(ms)),
             't' => unwrapped = Terminal::AndV(Arc::new(ms), Arc::new(Miniscript::TRUE)),
