@@ -23,8 +23,8 @@ use crate::policy::Liftable;
 use crate::prelude::*;
 use crate::util::{varint_len, witness_size};
 use crate::{
-    errstr, Error, ForEachKey, FromStrKey, MiniscriptKey, Satisfier, ScriptContext, Tap, Threshold,
-    ToPublicKey, TranslateErr, Translator,
+    errstr, AnalysisError, Error, ExtParams, ForEachKey, FromStrKey, MiniscriptKey, Satisfier,
+    ScriptContext, Tap, Threshold, ToPublicKey, TranslateErr, Translator,
 };
 
 /// A Taproot Tree representation.
@@ -248,6 +248,14 @@ impl<Pk: MiniscriptKey> Tr<Pk> {
     pub fn sanity_check(&self) -> Result<(), Error> {
         for (_depth, ms) in self.iter_scripts() {
             ms.sanity_check()?;
+        }
+        Ok(())
+    }
+
+    /// Check whether the descriptor follows certain extra constraints.
+    pub fn ext_check(&self, params: &ExtParams) -> Result<(), AnalysisError> {
+        for (_depth, ms) in self.iter_scripts() {
+            ms.ext_check(params)?;
         }
         Ok(())
     }

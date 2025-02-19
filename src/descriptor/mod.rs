@@ -27,8 +27,8 @@ use crate::miniscript::{satisfy, Legacy, Miniscript, Segwitv0};
 use crate::plan::{AssetProvider, Plan};
 use crate::prelude::*;
 use crate::{
-    expression, hash256, BareCtx, Error, ForEachKey, FromStrKey, MiniscriptKey, Satisfier,
-    ToPublicKey, TranslateErr, Translator,
+    expression, hash256, AnalysisError, BareCtx, Error, ExtParams, ForEachKey, FromStrKey,
+    MiniscriptKey, Satisfier, ToPublicKey, TranslateErr, Translator,
 };
 
 mod bare;
@@ -315,6 +315,36 @@ impl<Pk: MiniscriptKey> Descriptor<Pk> {
             Descriptor::Wsh(ref wsh) => wsh.sanity_check(),
             Descriptor::Sh(ref sh) => sh.sanity_check(),
             Descriptor::Tr(ref tr) => tr.sanity_check(),
+        }
+    }
+
+    /// Helper function for Wsh descriptor
+    fn ext_check_wsh(wsh: &Wsh<Pk>, params: &ExtParams) -> Result<(), AnalysisError> {
+        match wsh.as_inner() {
+            WshInner::SortedMulti(ref smv) => Ok(()),
+            WshInner::Ms(ref ms) => ms.ext_check(params),
+        }
+    }
+
+    /// Helper function for Sh descriptor
+    fn ext_check_sh(sh: &Sh<Pk>, params: &ExtParams) -> Result<(), AnalysisError> {
+        match sh.as_inner() {
+            ShInner::Wsh(ref wsh) => Self::ext_check_wsh(&wsh, params),
+            ShInner::Wpkh(_) => Ok(()),
+            ShInner::SortedMulti(ref smv) => Ok(()),
+            ShInner::Ms(ref ms) => ms.ext_check(params),
+        }
+    }
+
+    /// Check whether the descriptor is safe under the given extra parameters
+    pub fn ext_check(&self, params: &ExtParams) -> Result<(), AnalysisError> {
+        match *self {
+            Descriptor::Bare(ref bare) => bare.as_inner().ext_check(params),
+            Descriptor::Pkh(_) => Ok(()),
+            Descriptor::Wpkh(ref wpkh) => Ok(()),
+            Descriptor::Wsh(ref wsh) => Self::ext_check_wsh(&wsh, params),
+            Descriptor::Sh(ref sh) => Self::ext_check_sh(&sh, params),
+            Descriptor::Tr(ref tr) => tr.ext_check(params),
         }
     }
 
@@ -1117,7 +1147,7 @@ mod tests {
         StdDescriptor::from_str(TEST_PK).unwrap();
 
         let uncompressed_pk =
-        "0414fc03b8df87cd7b872996810db8458d61da8448e531569c8517b469a119d267be5645686309c6e6736dbd93940707cc9143d3cf29f1b877ff340e2cb2d259cf";
+            "0414fc03b8df87cd7b872996810db8458d61da8448e531569c8517b469a119d267be5645686309c6e6736dbd93940707cc9143d3cf29f1b877ff340e2cb2d259cf";
 
         // Context tests
         StdDescriptor::from_str(&format!("pk({})", uncompressed_pk)).unwrap();
@@ -1300,6 +1330,29 @@ mod tests {
             shwsh.address(Network::Bitcoin,).unwrap().to_string(),
             "38cTksiyPT2b1uGRVbVqHdDhW9vKs84N6Z"
         );
+    }
+
+    #[test]
+    fn ext_check() {
+        /// Make sure that default ext_check() catches OP_DROP but
+        /// ext_check() with OP_DROP explicitly allowed does not.
+        fn assert_opdrop_error(desc: &str) {
+            let desc = Descriptor::<PublicKey>::from_str(desc).unwrap();
+            assert_eq!(
+                desc.ext_check(&ExtParams::default()).unwrap_err(),
+                AnalysisError::ContainsDrop
+            );
+            assert_eq!(desc.ext_check(&ExtParams::default().drop()), Ok(()));
+        }
+
+        let secp = secp256k1::Secp256k1::new();
+        let sk =
+            secp256k1::SecretKey::from_slice(&b"sally was a secret key, she said"[..]).unwrap();
+        let pk = bitcoin::PublicKey::new(secp256k1::PublicKey::from_secret_key(&secp, &sk));
+        let inner = format!("and_v(r:after(1),c:pk_k({}))", pk);
+        assert_opdrop_error(format!("sh({})", inner).as_str());
+        assert_opdrop_error(format!("wsh({})", inner).as_str());
+        assert_opdrop_error(format!("sh(wsh({}))", inner).as_str());
     }
 
     #[test]
@@ -1648,7 +1701,7 @@ mod tests {
         let descriptor = Descriptor::<PublicKey>::from_str(
             "wsh(multi(2,03789ed0bb717d88f7d321a368d905e7430207ebbd82bd342cf11ae157a7ace5fd,03dbc6764b8884a92e871274b87583e6d5c2a58819473e17e107ef3f6aa5a61626))",
         )
-        .unwrap();
+            .unwrap();
         assert_eq!(
             *descriptor
                 .script_code().unwrap()
@@ -1679,7 +1732,7 @@ mod tests {
                     bip32::ChildNumber::from_hardened_idx(0).unwrap(),
                     bip32::ChildNumber::from_hardened_idx(0).unwrap(),
                 ][..])
-                .into(),
+                    .into(),
             )),
             xkey: bip32::Xpub::from_str("xpub6ERApfZwUNrhLCkDtcHTcxd75RbzS1ed54G1LkBUHQVHQKqhMkhgbmJbZRkrgZw4koxb5JaHWkY4ALHY2grBGRjaDMzQLcgJvLJuZZvRcEL").unwrap(),
             derivation_path: (&[bip32::ChildNumber::from_normal_idx(1).unwrap()][..]).into(),
@@ -1741,7 +1794,7 @@ mod tests {
             key: SinglePubKey::FullKey(bitcoin::PublicKey::from_str(
                 "04f5eeb2b10c944c6b9fbcfff94c35bdeecd93df977882babc7f3a2cf7f5c81d3b09a68db7f0e04f21de5d4230e75e6dbe7ad16eefe0d4325a62067dc6f369446a",
             )
-            .unwrap()),
+                .unwrap()),
             origin: None,
         });
         assert_eq!(expected, key.parse().unwrap());
